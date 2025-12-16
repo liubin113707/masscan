@@ -1,0 +1,55 @@
+name: Build Windows EXE  
+  
+on:  
+  push:  
+    branches: [ master, main ]  
+  pull_request:  
+    branches: [ master, main ]  
+  release:  
+    types: [ published ]  
+  
+jobs:  
+  build:  
+    runs-on: windows-latest  
+    strategy:  
+      matrix:  
+        build_type: [Release, Debug]  
+          
+    steps:  
+    - uses: actions/checkout@v4  
+      with:  
+        submodules: recursive  
+          
+    - name: Build with Visual Studio  
+      uses: microsoft/msbuild@v1.3  
+      with:  
+        solutionDirectory: vs10  
+        configuration: ${{ matrix.build_type }}  
+        platform: x64  
+          
+    - name: Upload Visual Studio Build  
+      uses: actions/upload-artifact@v3  
+      with:  
+        name: masscan-vs-${{ matrix.build_type }}-x64  
+        path: bin/masscan.exe  
+          
+    - name: Setup MinGW  
+      uses: msys2/setup-msys2@v2  
+      with:  
+        msystem: MINGW64  
+        update: true  
+        install: >-  
+          mingw-w64-x86_64-gcc  
+          mingw-w64-x86_64-make  
+            
+    - name: Build with MinGW  
+      shell: msys2 {0}  
+      run: |  
+        make clean  
+        make  
+          
+    - name: Upload MinGW Build  
+      uses: actions/upload-artifact@v3  
+      with:  
+        name: masscan-mingw-${{ matrix.build_type }}-x64  
+        path: bin/masscan.exe
